@@ -39,6 +39,18 @@ test_char[test_char==-1] = NA
 test_char[test_char==""] = NA
 test_char[test_char=="[]"] = NA
 
+train_date = train_char[,grep("JAN1|FEB1|MAR1", train_char),]
+train_char = train_char[, !colnames(train_char) %in% colnames(train_date)]
+train_date = sapply(train_date, function(x) strptime(x, "%d%B%y:%H:%M:%S"))
+train_date = do.call(cbind.data.frame, train_date)
+train_char=cbind(train_char,train_date)
+
+test_date = test_char[,grep("JAN1|FEB1|MAR1", test_char),]
+test_char = test_char[, !colnames(test_char) %in% colnames(test_date)]
+test_date = sapply(test_date, function(x) strptime(x, "%d%B%y:%H:%M:%S"))
+test_date = do.call(cbind.data.frame, test_date)
+test_char=cbind(test_char,test_date)
+
 train<-cbind(train_char,train_numr)
 test<-cbind(test_char,test_numr)
 
@@ -50,8 +62,9 @@ train = train[, !names(train) %in% names(col_ct[col_ct==1])]
 
 #<Deepesh Edit>
 sapply(train, function(x) sum(is.na(x))/nrow(train)) 
-train <- train[,colSums(is.na(train))<(.90*nrow(train))]
+train <- train[,colSums(is.na(train))<(.80*nrow(train))]
 
 feature.names <- names(train)[2:ncol(train)-1]
+
 #</Deepesh Edit>
 
