@@ -89,8 +89,21 @@ for (f in feature.names) {
 
 unique(lapply(test, class))
 
-train.imputed <- rfImpute(train$target ~ ., train)
-test.imputed<- rfImpute(test)
+
+
+#Clearing RAM
+rm(train.raw)
+rm(test.raw)
+rm(train_char)
+rm(test_char)
+rm(train_date)
+rm(test_date)
+rm(train_numr)
+rm(test_numr)
 
 #</Deepesh Edit>
 
+numcores_free=2 #Number of cores set free. Warning: Setting low value will slow down the system
+registerDoSNOW(makeCluster(detectCores()-numcores_free, type="SOCK"))
+
+imputed <- missForest(train,maxiter = 10,parallelize = 'forests', verbose = TRUE,variablewise=TRUE)
