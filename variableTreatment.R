@@ -8,6 +8,7 @@ library(missForest) #For missing value imputation if needed
 library(doParallel)
 library(itertools)
 library(BLR)
+library(mi)
 
 set.seed(666)
 setwd("/Users/deepesh.sharma/projects/Kaggle/springLeaf/data")
@@ -43,16 +44,28 @@ train_date = train_char[,grep("JAN1|FEB1|MAR1", train_char),]
 train_char = train_char[, !colnames(train_char) %in% colnames(train_date)]
 train_date = sapply(train_date, function(x) strptime(x, "%d%B%y:%H:%M:%S"))
 train_date = do.call(cbind.data.frame, train_date)
+for (f in colnames(train_date)){
+  train_date[[f]]<-as.numeric(train_date[[f]])
+}
+
 train_char=cbind(train_char,train_date)
 
 test_date = test_char[,grep("JAN1|FEB1|MAR1", test_char),]
 test_char = test_char[, !colnames(test_char) %in% colnames(test_date)]
 test_date = sapply(test_date, function(x) strptime(x, "%d%B%y:%H:%M:%S"))
 test_date = do.call(cbind.data.frame, test_date)
-test_char=cbind(test_char,test_date)
+for (f in colnames(test_date)){
+  test_date[[f]]<-as.numeric(test_date[[f]])
+}
 
+unique(lapply(test_date, class))
+
+test_char=cbind(test_char,test_date)
+unique(lapply(test_char, class))
 train<-cbind(train_char,train_numr)
 test<-cbind(test_char,test_numr)
+unique(lapply(train, class))
+unique(lapply(test, class))
 
 
 #Removing columns with only 1 value
@@ -61,10 +74,23 @@ cat("Constant feature count:", length(col_ct[col_ct==1]))
 train = train[, !names(train) %in% names(col_ct[col_ct==1])]
 
 #<Deepesh Edit>
-sapply(train, function(x) sum(is.na(x))/nrow(train)) 
 train <- train[,colSums(is.na(train))<(.80*nrow(train))]
 
 feature.names <- names(train)[2:ncol(train)-1]
+
+for (f in feature.names) {
+  if (class(train[[f]])=="character") {
+    levels <- unique(c(train[[f]], test[[f]]))
+    train[[f]] <- as.integer(factor(train[[f]], levels=levels))
+    test[[f]]  <- as.integer(factor(test[[f]],  levels=levels))
+    cat(f, "unique: ", length(unique(levels)), "\n")
+  }
+}
+
+unique(lapply(test, class))
+
+train.imputed <- rfImpute(train$target ~ ., train)
+test.imputed<- rfImpute(test)
 
 #</Deepesh Edit>
 
