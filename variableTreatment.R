@@ -9,6 +9,7 @@ library(doParallel)
 library(itertools)
 library(BLR)
 library(mi)
+library(dplyr)
 
 set.seed(666)
 setwd("/Users/deepesh.sharma/projects/Kaggle/springLeaf/data")
@@ -102,8 +103,31 @@ rm(train_numr)
 rm(test_numr)
 
 #</Deepesh Edit>
+save(list = ls(all.names = TRUE),file="variableTreat_b4imputation.RData")
 
 numcores_free=2 #Number of cores set free. Warning: Setting low value will slow down the system
-registerDoSNOW(makeCluster(detectCores()-numcores_free, type="SOCK"))
+cl<-makeCluster(detectCores()-numcores_free, type="SOCK")
+registerDoSNOW(cl)
 
-imputed <- missForest(train,maxiter = 10,parallelize = 'forests', verbose = TRUE,variablewise=TRUE)
+st<-0
+incre<-100
+end<-st+incre
+while(end<nrow(train)){
+  train_sam<-train[st:end,]
+  imputed <- missForest(train_sam,maxiter = 1,parallelize = 'variable', verbose = TRUE,variablewise=TRUE)
+  if (st==0){
+    imputed2<-imputed$ximp
+  }
+  else{
+    imputed2<-rbind(imputed2,imputed$ximp)
+  }
+  st=end+1
+  end=end+incre
+}
+
+save(list = ls(all.names = TRUE),file="variableTreat_a4imputation.RData")
+train_sam<-train[st:nrow(train),]
+imputed <- missForest(train_sam,maxiter = 1,ntree = 1,parallelize = 'variable', verbose = TRUE,variablewise=TRUE)
+imputed2<-rbind(imputed2,imputed$ximp)
+
+stopCluster(cl)
